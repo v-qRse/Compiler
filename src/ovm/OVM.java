@@ -161,6 +161,7 @@ public class OVM {
             int adr = pop();
             ip = adr;
          } else if (command == Command.IN_INT.getValue()) {
+            //TODO сделать
             int adr = pop();
             while (inputDeque.isEmpty()) {
                try {
