@@ -1,0 +1,8 @@
+MODULE test;
+IMPORT
+	Out;
+VAR
+	a: ARRAY 5 OF ARRAY 1 OF ARRAY 10 OF INTEGER;
+BEGIN
+	Out.Int(LEN(a), 10);
+END test.
