@@ -29,10 +29,10 @@ public class Parser {
 
    //TODO отладить skipLexeme, в разных местах используется по разному
    private static void skipLexeme(Lexeme skipLexeme) {
-      nextLex();
       if (lexeme != skipLexeme) {
          error("Ожидается: " + skipLexeme + ", а встечена: " + lexeme);
       }
+      nextLex();
    }
 
    private static String getName() {
@@ -66,11 +66,7 @@ public class Parser {
          }
       }
 
-      if (lexeme == Lexeme.SEMICOLON) {
-         nextLex();
-      } else {
-         error("Ожидается ;");
-      }
+      skipLexeme(Lexeme.SEMICOLON);
    }
 
    static private KindObject factor() {
@@ -96,7 +92,6 @@ public class Parser {
             nextLex();
             intExpression();
             skipLexeme(Lexeme.RIGHT_BRACKET);
-            nextLex();
             OvmCodeGenerator.constant(nameType.t.size);
             OvmCodeGenerator.command(Command.MUL.getValue());
             OvmCodeGenerator.command(Command.ADD.getValue());
@@ -110,27 +105,20 @@ public class Parser {
             if (nameKindObject.kind != Kind.STANDARD_FUNCTION) {
                error("имя " + name + " не принадлежит функции");
             }
+            nextLex();
 
             int ipBefore = OvmCodeGenerator.getIp();
             KindObject argKindObject = expression();
 
             int dimension;
-            if (nameKindObject.id == BuildId.LEN) {
-//               skipLexeme(Lexeme.COMMA);
-               if (lexeme != Lexeme.COMMA) {
-                  error("Ожидается: " + Lexeme.COMMA + ", а встечена: " + lexeme);
-               }
+            if (nameKindObject.id == BuildId.LEN && lexeme == Lexeme.COMMA) {
                nextLex();
                dimension = constIntExpression();
             } else {
                dimension = 0;
             }
 
-//            skipLexeme(Lexeme.RIGHT_PAR);
-            if (lexeme != Lexeme.RIGHT_PAR) {
-               error("Ожидается: " + Lexeme.RIGHT_PAR + ", а встечена: " + lexeme);
-            }
-            nextLex();
+            skipLexeme(Lexeme.RIGHT_PAR);
 
             switch (nameKindObject.id) {
                case ABS -> {
@@ -267,22 +255,14 @@ public class Parser {
          nextLex();
          return new KindObject(Kind.CONST_EXPRESSION, INTEGER);
       } else {
-         if (lexeme == Lexeme.LEFT_PAR) {
-            nextLex();
-         } else {
-            error("ожидается (");
-         }
+         skipLexeme(Lexeme.LEFT_PAR);
 
          KindObject exp = expression();
          if (exp.kind == Kind.TYPE_NAME) {
             error("имя типа нельзя заключать в дополнительные скобки");
          }
 
-         if (lexeme == Lexeme.RIGHT_PAR) {
-            nextLex();
-         } else {
-            error("ожидается )");
-         }
+         skipLexeme(Lexeme.RIGHT_PAR);
 
          if (exp.kind == Kind.VAR) {
             OvmCodeGenerator.command(Command.LOAD);
@@ -410,7 +390,7 @@ public class Parser {
             case PLUS -> {
                OvmCodeGenerator.command(Command.ADD);
             } case MINUS -> {
-               OvmCodeGenerator.command(Command.NEG);
+               OvmCodeGenerator.command(Command.SUB);//TODO проверить
             } default -> {
                error("ошибка в simpleExpression");
             }
@@ -517,8 +497,8 @@ public class Parser {
 
    static private void constDeclaration() {
       String nameConst = getName();
-      skipLexeme(Lexeme.EQ);
       nextLex();
+      skipLexeme(Lexeme.EQ);
 
       KindObject constKingObject = new KindObject(Kind.UNDEFINED_CONST);
       table.add(nameConst, constKingObject);
@@ -537,11 +517,7 @@ public class Parser {
          if (len <= 0) {
             error("недопустимая длина массива");
          }
-//         skipLexeme(Lexeme.OF);
-         if (lexeme != Lexeme.OF) {
-            error("Ожидается: " + Lexeme.OF + ", а встечена: " + lexeme);
-         }
-         nextLex();
+         skipLexeme(Lexeme.OF);
 
          Type t = new Type(type());
          int size = t.size * len;
@@ -563,12 +539,12 @@ public class Parser {
 
    static private void typeDeclaration() {
       String typeName = getName();
+      nextLex();
 
       KindObject typeKindObject = new KindObject(Kind.UNDEFINED_TYPE_NAME);
       table.add(typeName, typeKindObject);
 
       skipLexeme(Lexeme.EQ);
-      nextLex();
 
       Type type = type();
 
@@ -592,11 +568,7 @@ public class Parser {
          }
       }
 
-      if (lexeme == Lexeme.COLON) {
-         nextLex();
-      } else {
-         error("ожидается :");
-      }
+      skipLexeme(Lexeme.COLON);
 
       Type type = type();
       int size = type.size;
@@ -619,31 +591,19 @@ public class Parser {
             nextLex();
             while (lexeme == Lexeme.NAME) {
                constDeclaration();
-               if (lexeme == Lexeme.SEMICOLON) {
-                  nextLex();
-               } else {
-                  error("ожидается ;");
-               }
+               skipLexeme(Lexeme.SEMICOLON);
             }
          } else if (lexeme == Lexeme.TYPE) {
             nextLex();
             while (lexeme == Lexeme.NAME) {
                typeDeclaration();
-               if (lexeme == Lexeme.SEMICOLON) {
-                  nextLex();
-               } else {
-                  error("ожидается ;");
-               }
+               skipLexeme(Lexeme.SEMICOLON);
             }
          } else if (lexeme == Lexeme.VAR) {
             nextLex();
             while (lexeme == Lexeme.NAME) {
                varDeclaration();
-               if (lexeme == Lexeme.SEMICOLON) {
-                  nextLex();
-               } else {
-                  error("ожидается ;");
-               }
+               skipLexeme(Lexeme.SEMICOLON);
             }
          } else {
             break;
@@ -664,11 +624,7 @@ public class Parser {
    private static void procedureCallArgument(BuildId buildId) {
       switch (buildId) {
          case DEC -> {
-            if (lexeme == Lexeme.LEFT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается (");
-            }
+            skipLexeme(Lexeme.LEFT_PAR);
 
             intVariable();
             OvmCodeGenerator.command(Command.DUPLICATE);
@@ -682,17 +638,9 @@ public class Parser {
             OvmCodeGenerator.command(Command.SUB);
             OvmCodeGenerator.command(Command.STORE);
 
-            if (lexeme == Lexeme.RIGHT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
+            skipLexeme(Lexeme.RIGHT_PAR);
          } case INC -> {
-            if (lexeme == Lexeme.LEFT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается (");
-            }
+            skipLexeme(Lexeme.LEFT_PAR);
 
             intVariable();
             OvmCodeGenerator.command(Command.DUPLICATE);
@@ -706,85 +654,37 @@ public class Parser {
             OvmCodeGenerator.command(Command.ADD);
             OvmCodeGenerator.command(Command.STORE);
 
-            if (lexeme == Lexeme.RIGHT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
+            skipLexeme(Lexeme.RIGHT_PAR);
          } case IN_INT -> {
-            if (lexeme == Lexeme.LEFT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается (");
-            }
+            skipLexeme(Lexeme.LEFT_PAR);
 
             intVariable();
             OvmCodeGenerator.command(Command.IN_INT);
 
-            if (lexeme == Lexeme.RIGHT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
+            skipLexeme(Lexeme.RIGHT_PAR);
          } case IN_OPEN -> {
-            if (lexeme == Lexeme.LEFT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается (");
-            }
-            if (lexeme == Lexeme.RIGHT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
+            skipLexeme(Lexeme.LEFT_PAR);
+            skipLexeme(Lexeme.RIGHT_PAR);
          } case OUT_INT -> {
-            if (lexeme == Lexeme.LEFT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
+            skipLexeme(Lexeme.LEFT_PAR);
 
             intExpression();
-            if (lexeme == Lexeme.COMMA) {
-               nextLex();
-            } else {
-               error("ожидается ,");
-            }
+            skipLexeme(Lexeme.COMMA);
             intExpression();
             OvmCodeGenerator.command(Command.OUT_INT);
 
-            if (lexeme == Lexeme.RIGHT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
+            skipLexeme(Lexeme.RIGHT_PAR);
          } case OUT_LN -> {
-            if (lexeme == Lexeme.LEFT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
-            if (lexeme == Lexeme.RIGHT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
+            skipLexeme(Lexeme.LEFT_PAR);
+            skipLexeme(Lexeme.RIGHT_PAR);
 
             OvmCodeGenerator.command(Command.OUT_LN);
          } case HALT -> {
-            if (lexeme == Lexeme.LEFT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
+            skipLexeme(Lexeme.LEFT_PAR);
 
             intExpression();
 
-            if (lexeme == Lexeme.RIGHT_PAR) {
-               nextLex();
-            } else {
-               error("ожидается )");
-            }
+            skipLexeme(Lexeme.RIGHT_PAR);
             OvmCodeGenerator.command(Command.HALT);
          } default -> {
             error("процедура не распознана");
@@ -813,7 +713,6 @@ public class Parser {
 
             intExpression();
             skipLexeme(Lexeme.RIGHT_BRACKET);
-            nextLex();
             OvmCodeGenerator.constant(typeName.t.size);
             OvmCodeGenerator.command(Command.MUL);
             OvmCodeGenerator.command(Command.ADD);
@@ -867,8 +766,13 @@ public class Parser {
                error("переменная и выражения несовместимы по присваиванию");
             }
          } else if (lexeme == Lexeme.DOT) {
-            skipLexeme(Lexeme.NAME);
-            String procName = getName();
+            nextLex();
+            String procName = "";
+            if (lexeme == Lexeme.NAME) {
+               procName = getName();
+            } else {
+               error("ожидается имя");
+            }
             nextLex();
 
             if (kindObjectName.kind != Kind.IMPORTED_MODULE) {
@@ -894,26 +798,18 @@ public class Parser {
          nextLex();
          booleanExpression();
          int nextIp = OvmCodeGenerator.getIp() - 2;
-         if (lexeme == Lexeme.THEN) {
-            nextLex();
-         } else {
-            error("ожидается THEN");
-         }
+         skipLexeme(Lexeme.THEN);
 
          statementSequence();
          jumpEndIp.add(OvmCodeGenerator.getIp());
          OvmCodeGenerator.constant(0);
          OvmCodeGenerator.command(Command.GOTO);
          while (lexeme == Lexeme.ELSIF) {
-            OVM.memory[nextIp] = OvmCodeGenerator.getIp();
             nextLex();
+            OVM.memory[nextIp] = OvmCodeGenerator.getIp();
             booleanExpression();
             nextIp = OvmCodeGenerator.getIp() - 2;
-            if (lexeme == Lexeme.THEN) {
-               nextLex();
-            } else {
-               error("ожидается THEN");
-            }
+            skipLexeme(Lexeme.THEN);
 
             statementSequence();
             jumpEndIp.add(OvmCodeGenerator.getIp());
@@ -925,11 +821,7 @@ public class Parser {
             nextLex();
             statementSequence();
          }
-         if (lexeme == Lexeme.END) {
-            nextLex();
-         } else {
-            error("ожидается END");
-         }
+         skipLexeme(Lexeme.END);
 
          for (Integer ip: jumpEndIp) {
             OVM.memory[ip] = OvmCodeGenerator.getIp();
@@ -941,26 +833,24 @@ public class Parser {
          booleanExpression();
          int jumpAdr = OvmCodeGenerator.getIp() - 2;
 
-         if (lexeme == Lexeme.DO) {
-            nextLex();
-         } else {
-            error("ожидается DO");
-         }
+         skipLexeme(Lexeme.DO);
          statementSequence();
 
-         if (lexeme == Lexeme.END) {
-            nextLex();
-         } else {
-            error("ожидается END");
-         }
+         skipLexeme(Lexeme.END);
          OvmCodeGenerator.constant(beforeAdr);
          OvmCodeGenerator.command(Command.GOTO);
          OVM.memory[jumpAdr] = OvmCodeGenerator.getIp();
       } else if (lexeme == Lexeme.FOR) {
+         nextLex();
          int step;
 
-         skipLexeme(Lexeme.NAME);
-         String name = getName();
+         String name = "";
+         if (lexeme == Lexeme.NAME) {
+            name = getName();
+         } else {
+            error("ожидается имя переменной");
+         }
+         nextLex();
 
          int beforeAddr = OvmCodeGenerator.getIp();
          OvmCodeGenerator.constant(0);
@@ -973,18 +863,15 @@ public class Parser {
             error("ожидается переменная");
          }
          skipLexeme(Lexeme.ASSIGN);
-         nextLex();
          intExpression();
+
          OvmCodeGenerator.command(Command.STORE);
          int stepIp = OvmCodeGenerator.getIp();
          OvmCodeGenerator.constant(0);
          OvmCodeGenerator.command(Command.GOTO);
 
-         if (lexeme == Lexeme.TO) {
-            nextLex();
-         } else {
-            error("ожидается TO");
-         }
+         skipLexeme(Lexeme.TO);
+
          OVM.memory[beforeAddr] = OvmCodeGenerator.getIp(); //?
          intExpression();
          OvmCodeGenerator.constant(beforeAddr + 2);
@@ -999,11 +886,7 @@ public class Parser {
          } else {
             step = 1;
          }
-         if (lexeme == Lexeme.DO) {
-            nextLex();
-         } else {
-            error("ожидается DO");
-         }
+         skipLexeme(Lexeme.DO);
 
          int whileBegin =  OvmCodeGenerator.getIp();
          OVM.memory[stepIp] = whileBegin;
@@ -1019,11 +902,8 @@ public class Parser {
          }
 
          statementSequence();
-         if (lexeme == Lexeme.END) {
-            nextLex();
-         } else {
-            error("ожидается END");
-         }
+         skipLexeme(Lexeme.END);
+
          OvmCodeGenerator.constant(kindObjectName.address);
          OvmCodeGenerator.command(Command.DUPLICATE);
          OvmCodeGenerator.command(Command.LOAD);
@@ -1048,12 +928,11 @@ public class Parser {
 
    private static void module() {
       skipLexeme(Lexeme.MODULE);
-      nextLex();
       String nameModule = getName();
+      nextLex();
       table.openScore();
       table.add(nameModule, new KindObject(Kind.CURRENT_MODULE_NAME));
       skipLexeme(Lexeme.SEMICOLON);
-      nextLex();
 
       table.openScore();
       if (lexeme == Lexeme.IMPORT) {
@@ -1072,13 +951,10 @@ public class Parser {
       OvmCodeGenerator.command(Command.HALT);
       table.closeScore();
 
-      if (lexeme == Lexeme.END) {
-         nextLex();
-      } else {
-         error("ожидается END");
-      }
+      skipLexeme(Lexeme.END);
 
       String endModuleName = lexemeScanner.getIdentifier();
+      nextLex();
       if (!endModuleName.equals(nameModule)) {
          error("имя модуля в начале и в конце не совпадают");
       } else {
@@ -1108,6 +984,7 @@ public class Parser {
       table.add("INTEGER", new KindObject(Kind.TYPE_NAME, INTEGER));
 
       //-*-
+      nextLex();
       module();
       skipLexeme(Lexeme.EOT);
       table.closeScore();

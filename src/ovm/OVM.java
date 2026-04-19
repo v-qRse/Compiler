@@ -163,7 +163,7 @@ public class OVM {
          } else if (command == Command.IN_INT.getValue()) {
             //TODO сделать
             int adr = pop();
-            while (inputDeque.isEmpty()) {
+            if (inputDeque.isEmpty()) {
                try {
                   in.nextToken();
                   inputDeque.add((int) in.nval);
@@ -171,6 +171,7 @@ public class OVM {
                   throw new RuntimeException(e);
                }
             }
+            writeMemory(adr, inputDeque.pop());
          } else if (command == Command.OUT_INT.getValue()) {
             int wight = pop();
             int val = pop();

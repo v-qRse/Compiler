@@ -1,8 +1,21 @@
 MODULE test;
 IMPORT
-	Out;
+	Out, In;
 VAR
 	a: ARRAY 5 OF ARRAY 1 OF ARRAY 10 OF INTEGER;
+	b: INTEGER;
 BEGIN
+    b := 0;
+    In.Open();
+    In.Int(b);
+    Out.Int(b, 10);
+    Out.Ln();
+
 	Out.Int(LEN(a), 10);
+	Out.Ln();
+	Out.Int(LEN(a, 0), 8);
+	Out.Ln();
+	Out.Int(LEN(a, 1), 6);
+	Out.Ln();
+	Out.Int(LEN(a, 2), 4);
 END test.
